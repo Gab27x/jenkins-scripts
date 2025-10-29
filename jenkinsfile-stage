@@ -1,0 +1,104 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven'
+        jdk 'Java11'
+    }
+
+    environment {
+        GIT_REPO = 'https://github.com/Gab27x/ecommerce-microservice-backend-app.git'
+        BRANCH = 'master'
+        INIT_SLEEP_TIME = 20
+        SLEEP_TIME = 15
+        MAX_RETRIES = 10
+        NODES_NUM = 5
+        EUREKA_URL = 'http://service-discovery-container:8761/eureka/apps' 
+    
+    }
+
+    stages {
+
+        stage('CLONE') {
+            steps {
+                deleteDir()
+                sh "git clone -b ${BRANCH} ${GIT_REPO} ."
+            }
+        }
+
+        stage('BUILD AND TEST') {
+            steps {
+                sh "mvn clean package"
+                sh "mvn test"
+            }
+        }
+
+        stage('DOCKER COMPOSE UP'){
+            steps{
+                echo '=== Turning on core ==='
+                sh 'docker compose -f core.yml -d'
+                echo 'core up'
+
+                echo '=== Turning on project-compose ==='
+                sh 'docker compose -f project-compose.yml up -d --build'
+                echo 'micro services up'
+ 
+            }
+        }
+
+        stage('TEST HEALTH') {
+            steps {
+                script {
+                    def maxRetries = env.MAX_RETRIES.toInteger()
+                    def sleepTime = env.SLEEP_TIME.toInteger()
+                    def nodesNum = env.NODES_NUM.toInteger()
+                    def eurekaUrl = env.EUREKA_URL
+                    def success = false
+
+                    for (int i = 1; i <= maxRetries; i++) {
+                        echo "Intento ${i} de ${maxRetries}..."
+                        
+                        def response = sh(
+                            script: "docker run --rm --network microservices_network curlimages/curl -s --max-time 5 ${eurekaUrl} || true",
+                            returnStdout: true
+                        ).trim()
+
+                        if (response) {
+                            def appCount = sh(script: "echo '${response}' | grep -o '<application>' | wc -l | tr -d ' '", returnStdout: true).trim().toInteger()
+                            def upCount = sh(script: "echo '${response}' | grep -c '<status>UP</status>' | tr -d ' '", returnStdout: true).trim().toInteger()
+                            echo "Aplicaciones registradas: ${appCount}, UP: ${upCount}"
+
+                            if (appCount == nodesNum && upCount == nodesNum) {
+                                success = true
+                                break
+                            }
+                        } else {
+                            echo "No se obtuvo respuesta de Eureka."
+                        }
+
+                        sleep sleepTime
+                    }
+
+                    if (!success) {
+                        error "Eureka no alcanzó las ${nodesNum} aplicaciones UP tras ${maxRetries} intentos."
+                    } else {
+                        echo "Eureka está completamente operativo."
+                    }
+                }
+            }
+        }
+
+        stage('STOP DOCKER COMPOSE'){
+            echo 'stoping ...'
+            sh 'docker compose -f project-compose.yml down -v --remove-orphans'
+        }
+
+    }
+
+    post {
+        always {
+            cleanWs()
+            sh 'ls -la'
+        }
+    }
+}
