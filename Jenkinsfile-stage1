@@ -36,7 +36,7 @@ pipeline {
         stage('DOCKER COMPOSE UP'){
             steps{
                 echo '=== Turning on core ==='
-                sh 'docker compose -f core.yml -d'
+                sh 'docker compose -f core.yml up -d'
                 echo 'core up'
 
                 echo '=== Turning on project-compose ==='
