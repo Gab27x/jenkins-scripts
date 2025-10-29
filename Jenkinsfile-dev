@@ -1,48 +1,37 @@
-pipeline{
+pipeline {
     agent any
 
     tools {
         maven 'Maven'
         jdk 'Java11'
-
     }
 
     environment {
-        
         GIT_REPO = 'https://github.com/Gab27x/ecommerce-microservice-backend-app.git'
-        BRANCH = 'master'        
-   
+        BRANCH = 'master'
     }
-
 
     stages {
 
-        stage('CLONE'){
-            steps{
-                echo '=== Cloning Repository'
-                sh 'git clone -b ${BRANCH} ${GIT_REPO} .'
-            }
-        }
-        stage('BUILD AND TEST'){
-
-            steps{
-                echo '=== EXECUTING MVN CLEAN PACKAGE ==='
-                sh 'mvn clean package'
+        stage('CLONE') {
+            steps {
+                deleteDir()
+                sh "git clone -b ${BRANCH} ${GIT_REPO} ."
             }
         }
 
+        stage('BUILD AND TEST') {
+            steps {
+                sh "mvn clean package"
+                sh "mvn test"
+            }
+        }
     }
 
     post {
-
-        always{
-            echo 'CLEANING ...'
+        always {
             cleanWs()
-
-            echo 'CLEANING DONE'
-
             sh 'ls -la'
         }
     }
-
 }
