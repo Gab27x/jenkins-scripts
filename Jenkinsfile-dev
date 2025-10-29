@@ -41,7 +41,7 @@ pipeline{
 
             echo 'CLEANING DONE'
 
-            sh 'll'
+            sh 'ls -la'
         }
     }
 
