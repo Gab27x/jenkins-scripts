@@ -89,9 +89,12 @@ pipeline {
         }
 
         stage('STOP DOCKER COMPOSE'){
-            echo 'stoping ...'
-            sh 'docker compose -f project-compose.yml down -v --remove-orphans'
-        }
+            steps{
+
+                echo 'stoping ...'
+                sh 'docker compose -f project-compose.yml down -v --remove-orphans'
+            }
+            }
 
     }
 
