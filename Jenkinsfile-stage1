@@ -106,20 +106,29 @@ pipeline {
 
 
 
-        stage('STOP DOCKER COMPOSE'){
-            steps{
-
-                echo 'stoping ...'
-                sh 'docker compose -f project-compose.yml down -v --remove-orphans'
-            }
-            }
-
-    }
-
     post {
         always {
+            echo '=== Limpiando entorno ==='
+            
+            // Detener y limpiar todos los contenedores
+            sh '''
+                echo "== Deteniendo y removiendo contenedores Docker =="
+                docker compose -f project-compose.yml down -v --remove-orphans || true
+                docker compose -f core.yml down -v --remove-orphans || true
+            '''
+            
+            // Limpiar el workspace de Jenkins
             cleanWs()
-            sh 'ls -la'
+            echo '=== Workspace limpiado ==='
+        }
+
+        success {
+            echo 'Pipeline completado con éxito.'
+        }
+
+        failure {
+            echo 'El pipeline falló. Revisa los logs para más detalles.'
         }
     }
+
 }
