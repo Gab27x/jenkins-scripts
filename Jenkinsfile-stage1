@@ -88,6 +88,26 @@ pipeline {
             }
         }
 
+        stage('RUN POSTMAN TESTS') {
+            steps {
+                echo '=== Ejecutando pruebas Postman con Newman ==='
+                script {
+                    sh """
+                        mkdir -p results
+                        docker run --rm \
+                        --network microservices_network \
+                        -v ${env.WORKSPACE}/postman_collection.json:/etc/newman/collection.json:ro \
+                        -v ${env.WORKSPACE}/results:/etc/newman/results \
+                        postman/newman:alpine \
+                        run /etc/newman/collection.json \
+                        --reporters cli,json \
+                        --reporter-json-export /etc/newman/results/newman-report.json
+                    """
+                }
+            }
+        }
+
+
         stage('STOP DOCKER COMPOSE'){
             steps{
 
