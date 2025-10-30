@@ -88,22 +88,24 @@ pipeline {
             }
         }
 
-        stage('RUN POSTMAN TESTS') {
+        stage('POSTMAN TESTS') {
             steps {
-                echo '=== Ejecutando pruebas Postman con Newman ==='
-                script {
-                    sh """
-                        mkdir -p results
-                        docker run --rm \
-                        --network microservices_network \
-                        -v ${env.WORKSPACE}/postman_collection.json:/etc/newman/collection.json:ro \
-                        -v ${env.WORKSPACE}/results:/etc/newman/results \
-                        postman/newman:alpine \
-                        run /etc/newman/collection.json \
-                        --reporters cli,json \
-                        --reporter-json-export /etc/newman/results/newman-report.json
-                    """
-                }
+                echo '=== Ejecutando pruebas Postman ==='
+                sh '''
+                    docker run --rm --network microservices_network \
+                        -v $WORKSPACE/postman_collection.json:/etc/newman/collection.json \
+                        postman/newman:alpine run /etc/newman/collection.json \
+                        --env-var base=http:// \
+                        --env-var eureka_container=ecommerce-microservice-backend-app-service-discovery-container-1: \
+                        --env-var user_container=ecommerce-microservice-backend-app-user-service-container-1: \
+                        --env-var order_container=ecommerce-microservice-backend-app-order-service-container-1: \
+                        --env-var payment_container=ecommerce-microservice-backend-app-payment-service-container-1: \
+                        --env-var eureka_port=8761 \
+                        --env-var user_port=8700 \
+                        --env-var order_port=8300 \
+                        --env-var payment_port=8400 \
+                        --reporters cli,junit --reporter-junit-export newman-results.xml
+                '''
             }
         }
 
