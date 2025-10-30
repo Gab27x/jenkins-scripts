@@ -92,22 +92,18 @@ pipeline {
             steps {
                 echo '=== Ejecutando pruebas Postman ==='
                 sh '''
-                    docker run --rm --network microservices_network \
-                        -v $WORKSPACE/postman_collection.json:/etc/newman/collection.json \
-                        postman/newman:alpine run /etc/newman/collection.json \
-                        --env-var base=http:// \
-                        --env-var eureka_container=ecommerce-microservice-backend-app-service-discovery-container-1: \
-                        --env-var user_container=ecommerce-microservice-backend-app-user-service-container-1: \
-                        --env-var order_container=ecommerce-microservice-backend-app-order-service-container-1: \
-                        --env-var payment_container=ecommerce-microservice-backend-app-payment-service-container-1: \
-                        --env-var eureka_port=8761 \
-                        --env-var user_port=8700 \
-                        --env-var order_port=8300 \
-                        --env-var payment_port=8400 \
-                        --reporters cli,junit --reporter-junit-export newman-results.xml
+                    docker run --rm \
+                    --name postman-newman-runner \
+                    --network microservices_network \
+                    -v $(pwd):/etc/newman \
+                    postman/newman:latest run /etc/newman/postman_collection.json \
+                    --environment /etc/newman/variables_pipeline.json \
+                    --reporters cli,junit \
+                    --reporter-junit-export /etc/newman/newman-report.xml
                 '''
             }
         }
+
 
 
         stage('STOP DOCKER COMPOSE'){
