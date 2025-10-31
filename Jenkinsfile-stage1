@@ -199,7 +199,7 @@ pipeline {
                     echo "Deploying microservices via Helm..."
                     sh "helm upgrade --install microservices ./microservices -n stage --create-namespace"
                     
-                    sh "sleep 40"
+                    sh "sleep 180"
 
                     // 3. Verificación
                     echo "Verifying deployment status..."
