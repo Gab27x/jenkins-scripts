@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven'
+        jdk 'Java11'
+    }
+
+    environment {
+        GIT_REPO = 'https://github.com/Gab27x/ecommerce-microservice-backend-app.git'
+        BRANCH = 'master'
+        IMAGE_NAME = "gab27x/microservices"
+        IMAGE_TAG = "my-newman-latest"
+    }
+
+    stages {
+
+        stage('CLONE') {
+            steps {
+                deleteDir()
+                sh "git clone -b ${BRANCH} ${GIT_REPO} ."
+            }
+        }
+        
+        stage('Build & Push Docker Image') {
+            steps {
+                script {
+                    // Login a Docker Hub usando credenciales de Jenkins
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    }
+
+                    echo "============================="
+                    echo "Building Docker image ${IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "============================="
+
+                    // Build de la imagen
+                    sh """
+                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    """
+
+                    // Push de la imagen
+                    sh """
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+
+    } 
+
+    post {
+        always {
+            cleanWs()
+            sh 'ls -la'
+        }
+    }
+}
