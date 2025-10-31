@@ -204,6 +204,7 @@ pipeline {
                     // 3. Verificación
                     echo "Verifying deployment status..."
                     sh "kubectl get pods -n stage"
+                    sh 'kubectl get jobs -n stage'
 
                 }
             } // <-- FIN DEL BLOQUE 'steps' de la etapa Minikube

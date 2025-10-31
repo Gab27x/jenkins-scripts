@@ -49,6 +49,8 @@ pipeline {
 
                     echo "Verifying deployment status..."
                     sh "kubectl get pods -n prod"
+                    sh 'kubectl get jobs -n prod'
+
 
                 }
             }
