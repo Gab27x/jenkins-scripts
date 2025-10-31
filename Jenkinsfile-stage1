@@ -184,6 +184,32 @@ pipeline {
             }
         }
 
+        stage('Minikube Setup & Deployment') {
+            steps { // <-- INICIO DEL BLOQUE 'steps' de la etapa Minikube
+                script {
+                    echo "============================="
+                    echo "Starting Minikube & Deploying from Docker Hub"
+                    echo "============================="
+
+                    // 1. Iniciar Minikube
+                    echo "Starting Minikube..."
+                    sh "minikube start --cpus 4 --memory 8192"
+                    
+                    // 2. Despliegue de Helm
+                    echo "Deploying microservices via Helm..."
+                    sh "helm upgrade --install microservices ./microservices -n stage --create-namespace"
+                    
+                    sh "sleep 40"
+
+                    // 3. Verificación
+                    echo "Verifying deployment status..."
+                    sh "kubectl get pods -n stage"
+                }
+            } // <-- FIN DEL BLOQUE 'steps' de la etapa Minikube
+        } // <-- FIN DE LA ETAPA 'Minikube Setup & Deployment'
+
+
+
 
 
 
@@ -201,6 +227,10 @@ pipeline {
                 docker compose -f project-compose.yml down -v --remove-orphans || true
                 docker compose -f core.yml down -v --remove-orphans || true
             '''
+
+            // --- LIMPIEZA DE MINIKUBE ---
+            echo "Limpiando el clúster Minikube..."
+            sh "minikube delete"
             
             // Limpiar el workspace de Jenkins
             cleanWs()
