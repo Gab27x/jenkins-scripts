@@ -65,6 +65,9 @@ pipeline {
 
         success {
             echo 'Pipeline completado con éxito.'
+
+            sh "helm get notes microservices-prod -n prod"
+
         }
 
         failure {
