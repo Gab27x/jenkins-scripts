@@ -14,6 +14,8 @@ pipeline {
         MAX_RETRIES = 10
         NODES_NUM = 5
         EUREKA_URL = 'http://service-discovery-container:8761/eureka/apps' 
+        DOCKER_REPO = 'gab27x/microservices'
+        SERVICES = 'user-service,order-service'
     
     }
 
@@ -103,6 +105,64 @@ pipeline {
                 '''
             }
         }
+
+        stage('SHUTDOWN DOCKER COMPOSE'){
+            steps{
+
+                sh'docker compose -f project-compose.yml down -v --remove-orphans'
+            }
+        }
+
+        stage('Build & Push Docker Images') {
+            steps {
+                script {
+                    // Login a Docker Hub usando credenciales de Jenkins
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    }
+
+                    // Convertir string de servicios a lista
+                    def servicesList = SERVICES.split(',')
+
+                    servicesList.each { service ->
+                        echo "============================="
+                        echo "Processing $service"
+                        echo "============================="
+
+                        // Obtener última versión del servicio desde Docker Hub
+                        def lastTag = sh(
+                            script: """
+                                curl -s https://hub.docker.com/v2/repositories/$DOCKER_REPO/tags?page_size=100 \
+                                | jq -r '.results[].name' | grep "^${service}-" | sort -t'-' -k2 -n | tail -1 | cut -d'-' -f2
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        // Calcular nueva versión
+                        def newTag = lastTag ? (lastTag.toInteger() + 1).toString() : "1"
+                        def imageTag = "${service}-${newTag}"
+
+                        echo "Nueva versión para $service: $imageTag"
+
+                        // Build del jar con Maven
+                        sh """
+                            cd $service
+                            ./mvnw clean package -DskipTests
+                            cd ..
+                        """
+
+                        // Build y push de la imagen Docker
+                        sh """
+                            docker build -t $DOCKER_REPO:$imageTag $service
+                            docker push $DOCKER_REPO:$imageTag
+                        """
+                    }
+                }
+            }
+        }
+
+
+
     }
 
 
