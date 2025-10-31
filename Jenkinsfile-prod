@@ -44,8 +44,9 @@ pipeline {
                 script {
                    
                     echo "Deploying microservices via Helm..."
-                    sh "helm upgrade --install microservices-prod ./microservices -f values-prod.yaml --namespace prod"
+                    sh "helm upgrade --install microservices-prod ./microservices -f ./microservices/values-prod.yaml --namespace prod --create-namespace"
                     
+
                     sh "sleep 40"
 
                     // 3. Verificación
