@@ -10,72 +10,51 @@ pipeline {
         GIT_REPO = 'https://github.com/Gab27x/ecommerce-microservice-backend-app.git'
         BRANCH = 'master'
         DOCKER_REPO = 'gab27x/microservices'
-\
-    
     }
 
     stages {
         stage('CLONE') {
-                    steps {
-                        deleteDir()
-                        sh "git clone -b ${BRANCH} ${GIT_REPO} ."
-                    }
-                }
+            steps {
+                deleteDir()
+                sh "git clone -b ${BRANCH} ${GIT_REPO} ."
+            }
+        }
 
-       
         stage('Minikube Setup & Deployment') {
-            steps { // <-- INICIO DEL BLOQUE 'steps' de la etapa Minikube
+            steps {
                 script {
                     echo "============================="
-                    echo "Starting Minikube "
+                    echo "Starting Minikube"
                     echo "============================="
 
-                    // 1. Iniciar Minikube
-                    echo "Starting Minikube..."
                     sh "minikube start --cpus 4 --memory 8192"
-                    
-                    
                 }
-            } // <-- FIN DEL BLOQUE 'steps' de la etapa Minikube
-        } // <-- FIN DE LA ETAPA 'Minikube Setup & Deployment'
+            }
+        }
 
         stage('Minikube Deployment and e2e tests') {
-            steps { // <-- INICIO DEL BLOQUE 'steps' de la etapa Minikube
+            steps {
                 script {
-                   
-                    echo "Deploying microservices via Helm..."
+                    echo "============================="
+                    echo "Deploying microservices via Helm"
+                    echo "============================="
+
+                    // Ajusta la ruta al chart y al archivo de valores
                     sh "helm upgrade --install microservices-prod ./microservices -f ./microservices/values-prod.yaml --namespace prod --create-namespace"
-                    
 
                     sh "sleep 40"
 
-                    // 3. Verificación
                     echo "Verifying deployment status..."
-                    sh "kubectl get pods -n stage"
+                    sh "kubectl get pods -n prod"
                 }
-            } // <-- FIN DEL BLOQUE 'steps' de la etapa Minikube
-        } // <-- FIN DE LA ETAPA 'Minikube Setup & Deployment'
-
-
-
-
-
-
-
+            }
+        }
     }
-
-
 
     post {
         always {
             echo '=== Limpiando entorno ==='
-
-
-            // --- LIMPIEZA DE MINIKUBE ---
-            echo "Limpiando el clúster Minikube..."
             sh "minikube delete"
-            
-            // Limpiar el workspace de Jenkins
             cleanWs()
             echo '=== Workspace limpiado ==='
         }
@@ -88,5 +67,4 @@ pipeline {
             echo 'El pipeline falló. Revisa los logs para más detalles.'
         }
     }
-
 }
