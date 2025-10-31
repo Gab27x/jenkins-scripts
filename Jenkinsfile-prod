@@ -9,18 +9,18 @@ pipeline {
     environment {
         GIT_REPO = 'https://github.com/Gab27x/ecommerce-microservice-backend-app.git'
         BRANCH = 'master'
-        INIT_SLEEP_TIME = 20
-        SLEEP_TIME = 15
-        MAX_RETRIES = 10
-        NODES_NUM = 5
-        EUREKA_URL = 'http://service-discovery-container:8761/eureka/apps' 
         DOCKER_REPO = 'gab27x/microservices'
-        SERVICES = 'user-service,order-service'
+\
     
     }
 
     stages {
-
+        stage('CLONE') {
+                    steps {
+                        deleteDir()
+                        sh "git clone -b ${BRANCH} ${GIT_REPO} ."
+                    }
+                }
 
        
         stage('Minikube Setup & Deployment') {
