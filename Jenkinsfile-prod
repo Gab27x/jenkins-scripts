@@ -50,7 +50,7 @@ pipeline {
                     echo "Verifying deployment status..."
                     sh "kubectl get pods -n prod"
                     def podName = sh(
-                    script: "kubectl get pods -n prod --selector=job-name=<job-name> -o jsonpath='{.items[0].metadata.name}'",
+                    script: "kubectl get jobs -n prod --selector=job-name=<job-name> -o jsonpath='{.items[0].metadata.name}'",
                             returnStdout: true
                         ).trim()
 

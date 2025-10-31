@@ -206,7 +206,7 @@ pipeline {
                     sh "kubectl get pods -n stage"
 
                     def podName = sh(
-                    script: "kubectl get pods -n stage --selector=job-name=<job-name> -o jsonpath='{.items[0].metadata.name}'",
+                    script: "kubectl get jobs -n stage --selector=job-name=<job-name> -o jsonpath='{.items[0].metadata.name}'",
                             returnStdout: true
                         ).trim()
 
