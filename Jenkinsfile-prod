@@ -1,0 +1,91 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven'
+        jdk 'Java11'
+    }
+
+    environment {
+        GIT_REPO = 'https://github.com/Gab27x/ecommerce-microservice-backend-app.git'
+        BRANCH = 'master'
+        INIT_SLEEP_TIME = 20
+        SLEEP_TIME = 15
+        MAX_RETRIES = 10
+        NODES_NUM = 5
+        EUREKA_URL = 'http://service-discovery-container:8761/eureka/apps' 
+        DOCKER_REPO = 'gab27x/microservices'
+        SERVICES = 'user-service,order-service'
+    
+    }
+
+    stages {
+
+
+       
+        stage('Minikube Setup & Deployment') {
+            steps { // <-- INICIO DEL BLOQUE 'steps' de la etapa Minikube
+                script {
+                    echo "============================="
+                    echo "Starting Minikube "
+                    echo "============================="
+
+                    // 1. Iniciar Minikube
+                    echo "Starting Minikube..."
+                    sh "minikube start --cpus 4 --memory 8192"
+                    
+                    
+                }
+            } // <-- FIN DEL BLOQUE 'steps' de la etapa Minikube
+        } // <-- FIN DE LA ETAPA 'Minikube Setup & Deployment'
+
+        stage('Minikube Deployment and e2e tests') {
+            steps { // <-- INICIO DEL BLOQUE 'steps' de la etapa Minikube
+                script {
+                   
+                    echo "Deploying microservices via Helm..."
+                    sh "helm upgrade --install microservices-prod ./microservices -f values-prod.yaml --namespace prod"
+                    
+                    sh "sleep 40"
+
+                    // 3. Verificación
+                    echo "Verifying deployment status..."
+                    sh "kubectl get pods -n stage"
+                }
+            } // <-- FIN DEL BLOQUE 'steps' de la etapa Minikube
+        } // <-- FIN DE LA ETAPA 'Minikube Setup & Deployment'
+
+
+
+
+
+
+
+    }
+
+
+
+    post {
+        always {
+            echo '=== Limpiando entorno ==='
+
+
+            // --- LIMPIEZA DE MINIKUBE ---
+            echo "Limpiando el clúster Minikube..."
+            sh "minikube delete"
+            
+            // Limpiar el workspace de Jenkins
+            cleanWs()
+            echo '=== Workspace limpiado ==='
+        }
+
+        success {
+            echo 'Pipeline completado con éxito.'
+        }
+
+        failure {
+            echo 'El pipeline falló. Revisa los logs para más detalles.'
+        }
+    }
+
+}
