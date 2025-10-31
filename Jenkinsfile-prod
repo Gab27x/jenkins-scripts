@@ -49,6 +49,8 @@ pipeline {
 
                     echo "Verifying deployment status..."
                     sh "kubectl get pods -n prod"
+                    sh "helm get notes microservices-prod -n prod"
+
                 }
             }
         }
@@ -66,7 +68,6 @@ pipeline {
         success {
             echo 'Pipeline completado con éxito.'
 
-            sh "helm get notes microservices-prod -n prod"
 
         }
 
