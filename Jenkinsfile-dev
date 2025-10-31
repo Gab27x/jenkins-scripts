@@ -26,51 +26,47 @@ pipeline {
                 sh "mvn test"
             }
         }
-
         stage('SONARQUBE SCAN') {
             steps {
                 script {
                     sh '''
                     set -e
 
-                    echo "=== Iniciando SonarQube Scan ==="
-
-                    # Crear red si no existe
+                    echo "=== Levantando SonarQube en Docker ==="
                     docker network create sonar-net || true
+                    docker rm -f sonarqube || true
+                    docker run -d \
+                    --name sonarqube \
+                    --network sonar-net \
+                    -p 9000:9000 \
+                    --platform linux/arm64 \
+                    sonarqube:lts-community
 
-                    # Levantar SonarQube
-                    docker run -d --name sonarqube --platform linux/arm64 --network sonar-net -p 9000:9000 sonarqube:lts-community
-
-                    echo "Esperando a que SonarQube esté listo..."
-                    # Espera dinámica hasta que el servicio esté UP
+                    echo "=== Esperando a que SonarQube esté listo ==="
                     until curl -s http://localhost:9000/api/system/status | grep -q '"status":"UP"'; do
-                        echo "  -> todavía no está listo..."
+                        echo "Esperando 5s..."
                         sleep 5
                     done
 
-                    echo "Generando token automáticamente..."
-                    SONAR_TOKEN=$(curl -u admin:admin -s -X POST "http://localhost:9000/api/user_tokens/generate?name=auto-token" | grep -o '"token":"[^"]*"' | sed 's/"token":"//;s/"//')
+                    echo "=== Generando token automático ==="
+                    SONAR_TOKEN=$(curl -s -u admin:admin -X POST "http://localhost:9000/api/user_tokens/generate?name=pipeline-token" | grep -o '"token":"[^"]*"' | cut -d':' -f2 | tr -d '"')
                     echo "Token generado: $SONAR_TOKEN"
 
-                    echo "Ejecutando build sin tests..."
-                    mvn clean package -DskipTests
+                    echo "=== Ejecutando análisis Maven Sonar ==="
+                    mvn clean package -DskipTests sonar:sonar \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.login=${SONAR_TOKEN} || true
 
-                    echo "Ejecutando análisis SonarQube..."
-                    docker run --rm --platform linux/arm64 --network sonar-net \
-                    -e SONAR_HOST_URL="http://sonarqube:9000" \
-                    -e SONAR_LOGIN="${SONAR_TOKEN}" \
-                    -v ${PWD}:/usr/src \
-                    sonarsource/sonar-scanner-cli:latest || true
-
-                    echo "Limpiando contenedores y red..."
+                    echo "=== Limpiando SonarQube ==="
                     docker rm -f sonarqube || true
                     docker network rm sonar-net || true
 
-                    echo "=== SonarQube Scan finalizado ==="
+                    echo "=== FIN DEL STAGE ==="
                     '''
                 }
             }
         }
+
 
         stage('TRIVY SCAN') {
             steps {
