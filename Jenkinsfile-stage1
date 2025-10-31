@@ -204,14 +204,18 @@ pipeline {
                     // 3. Verificación
                     echo "Verifying deployment status..."
                     sh "kubectl get pods -n stage"
-                    sh "helm get notes microservices -n stage"
 
                 }
             } // <-- FIN DEL BLOQUE 'steps' de la etapa Minikube
         } // <-- FIN DE LA ETAPA 'Minikube Setup & Deployment'
 
 
+            tage('Show relase notes'){
 
+            steps{
+                    sh "helm get notes microservices -n stage"
+            }
+        }
 
 
 

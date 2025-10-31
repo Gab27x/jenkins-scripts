@@ -49,9 +49,14 @@ pipeline {
 
                     echo "Verifying deployment status..."
                     sh "kubectl get pods -n prod"
-                    sh "helm get notes microservices-prod -n prod"
 
                 }
+            }
+        }
+        stage('Show relase notes'){
+
+            steps{
+                    sh "helm get notes microservices-prod -n prod"
             }
         }
     }
