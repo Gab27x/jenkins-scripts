@@ -57,6 +57,7 @@ pipeline {
     post {
         always {
             echo '=== Limpiando entorno ==='
+            sh 'kubectl get pods -n prod'
             sh "minikube delete"
             cleanWs()
             echo '=== Workspace limpiado ==='
