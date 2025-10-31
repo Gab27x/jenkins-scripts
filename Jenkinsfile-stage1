@@ -125,24 +125,40 @@ pipeline {
                     def servicesList = SERVICES.split(',')
 
                     servicesList.each { service ->
+                        // Etiqueta para el "último"
+                        def LATEST_TAG = "${service}-latest" 
+                        
                         echo "============================="
                         echo "Processing $service"
                         echo "============================="
 
-                        // Obtener última versión del servicio desde Docker Hub
-                        def lastTag = sh(
+                        // --- LÓGICA DE EXTRACCIÓN Y CÁLCULO CORREGIDA ---
+                        def lastTagFull = sh(
                             script: """
-                                curl -s https://hub.docker.com/v2/repositories/$DOCKER_REPO/tags?page_size=100 \
-                                | jq -r '.results[].name' | grep "^${service}-" | sort -t'-' -k2 -n | tail -1 | cut -d'-' -f2
+                                curl -s "https://hub.docker.com/v2/repositories/$DOCKER_REPO/tags?page_size=100" \
+                                | jq -r '.results[].name' \
+                                | grep "^${service}-[0-9]*\$" \
+                                | sort -V \
+                                | tail -1
                             """,
                             returnStdout: true
                         ).trim()
 
-                        // Calcular nueva versión
-                        def newTag = lastTag ? (lastTag.toInteger() + 1).toString() : "1"
-                        def imageTag = "${service}-${newTag}"
+                        def lastTagNumber = "0"
+                        if (lastTagFull) {
+                            // Extrae solo la parte numérica después del guion
+                            def matcher = (lastTagFull =~ /${service}-(\d+)/)
+                            if (matcher.find()) {
+                                lastTagNumber = matcher.group(1)
+                            }
+                        }
 
-                        echo "Nueva versión para $service: $imageTag"
+                        // Calcula nueva versión. Si no se encuentra nada, empieza en 1.
+                        def newTagNumber = lastTagNumber.toInteger() + 1
+                        def versionTag = "${service}-${newTagNumber}" // Etiqueta de versión específica
+                        
+                        echo "Nueva versión para $service: $versionTag"
+                        echo "Etiqueta 'Latest' a aplicar: $LATEST_TAG"
 
                         // Build del jar con Maven
                         sh """
@@ -151,15 +167,23 @@ pipeline {
                             cd ..
                         """
 
-                        // Build y push de la imagen Docker
+                        // Build, Etiquetado Doble y Push de la imagen Docker
                         sh """
-                            docker build -t $DOCKER_REPO:$imageTag $service
-                            docker push $DOCKER_REPO:$imageTag
+                            # 1. Build con la etiqueta de versión (e.g., user-service-2)
+                            docker build -t $DOCKER_REPO:$versionTag $service
+
+                            # 2. Etiquetar la misma imagen con la etiqueta 'latest' 
+                            docker tag $DOCKER_REPO:$versionTag $DOCKER_REPO:$LATEST_TAG
+
+                            # 3. Push de ambas etiquetas al Docker Hub
+                            docker push $DOCKER_REPO:$versionTag
+                            docker push $DOCKER_REPO:$LATEST_TAG
                         """
                     }
                 }
             }
         }
+
 
 
 
