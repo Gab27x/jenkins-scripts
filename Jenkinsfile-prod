@@ -12,7 +12,10 @@ pipeline {
         DOCKER_REPO = 'gab27x/microservices'
     }
 
+
+
     stages {
+
         stage('CLONE') {
             steps {
                 deleteDir()
