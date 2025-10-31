@@ -26,6 +26,39 @@ pipeline {
                 sh "mvn test"
             }
         }
+        
+        stage('SONARQUBE SCAN') {
+            steps {
+                script {
+                    sh '''
+                    set -e
+                    docker network create sonar-net || true
+                    docker run -d --name sonarqube --network sonar-net -p 9000:9000 sonarqube:lts-community
+
+                    echo "Esperando a que SonarQube esté listo..."
+                    until curl -s http://localhost:9000/api/system/status | grep -q '"status":"UP"'; do
+                        echo "  -> todavía no está listo..."
+                        sleep 5
+                    done
+
+                    echo "Generando token automáticamente..."
+                    SONAR_TOKEN=$(curl -u admin:admin -s -X POST "http://localhost:9000/api/user_tokens/generate?name=auto-token" | grep -o '"token":"[^"]*"' | sed 's/"token":"//;s/"//')
+
+                    echo "Token generado: $SONAR_TOKEN"
+
+                    mvn clean package -DskipTests
+
+                    docker run --rm --network sonar-net \
+                      -e SONAR_HOST_URL="http://localhost:9000" \
+                      -e SONAR_LOGIN="${SONAR_TOKEN}" \
+                      -v ${PWD}:/usr/src \
+                      sonarsource/sonar-scanner-cli:latest || true
+
+                    docker rm -f sonarqube || true
+                    docker network rm sonar-net || true
+                    '''
+                }
+            }
         stage('TRIVY SCAN') {
             steps {
                 script {
