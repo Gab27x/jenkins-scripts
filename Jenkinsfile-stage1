@@ -214,7 +214,7 @@ pipeline {
             tage('Show relase notes'){
 
             steps{
-                    sh "helm get notes microservices -n stage"
+                sh "helm get notes microservices -n stage"
             }
         }
 
