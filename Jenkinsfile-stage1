@@ -197,7 +197,7 @@ pipeline {
 
             // 2. Despliegue de Helm
             echo "Deploying microservices via Helm..."
-            sh "helm install microservices ./microservices -n stage --create-namespace -f ./microservices/values-prod.yaml"
+            sh "helm install microservices ./microservices -n stage --create-namespace -f ./microservices/values.yaml"
 
             // 3. Espera a que los pods estén listos
             echo "Waiting for pods to be ready..."
