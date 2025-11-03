@@ -215,6 +215,17 @@ pipeline {
 
             steps{
                 sh "helm get notes microservices -n stage"
+
+                 echo '=== API Tests Job Logs ==='
+            sh '''
+                kubectl logs -n stage $(
+                    kubectl get pods -n stage \
+                    -l job-name=$(
+                        kubectl get jobs -n stage -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\\n' | grep microservices-api-tests | head -n1
+                    ) \
+                    -o jsonpath='{.items[0].metadata.name}'
+                )
+            '''
             }
         }
 

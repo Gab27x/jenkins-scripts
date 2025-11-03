@@ -43,7 +43,7 @@ pipeline {
                     echo "============================="
 
                     // Ajusta la ruta al chart y al archivo de valores
-                    sh "helm upgrade --install microservices-prod ./microservices -f ./microservices/values-prod.yaml --namespace prod --create-namespace"
+                    sh "helm install microservices-prod ./microservices -f ./microservices/values-prod.yaml --namespace prod --create-namespace"
 
                     sh "sleep 180"
 
@@ -57,7 +57,31 @@ pipeline {
         stage('Show relase notes'){
 
             steps{
-                    sh "helm get notes microservices-prod -n prod"
+                     script {
+            echo '=== Helm Release Notes ==='
+            sh 'helm get notes microservices-prod -n prod'
+
+            echo '=== Locust Job Logs ==='
+            sh '''
+                kubectl logs -n prod $(
+                    kubectl get pods -n prod \
+                    -l job-name=microservices-prod-locust-job \
+                    --sort-by=.metadata.creationTimestamp \
+                    -o jsonpath='{.items[-1:].metadata.name}'
+                )
+            '''
+
+            echo '=== API Tests Job Logs ==='
+            sh '''
+                kubectl logs -n prod $(
+                    kubectl get pods -n prod \
+                    -l job-name=$(
+                        kubectl get jobs -n prod -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\\n' | grep microservices-prod-api-tests | head -n1
+                    ) \
+                    -o jsonpath='{.items[0].metadata.name}'
+                )
+            '''
+        }
             }
         }
     }
