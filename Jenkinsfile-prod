@@ -23,7 +23,7 @@ pipeline {
             }
         }
 
-        stage('Minikube Setup & Deployment') {
+        stage('Minikube Setup') {
             steps {
                 script {
                     echo "============================="
